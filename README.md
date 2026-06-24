@@ -2,6 +2,10 @@
 
 Dashboard de análise e previsão de produção industrial com foco em desempenho por faixa etária de funcionários e tendência temporal — combinando análise histórica (2018–2023) com projeção via forecast nativo do Power BI até 2028.
 
+## 📸 Preview do Dashboard
+
+![Preview do Dashboard](preview4.png)
+
 ---
 
 ## 🎯 Problema de negócio
