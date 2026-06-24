@@ -26,7 +26,7 @@ Gestores de produção industrial precisam não apenas monitorar o desempenho pa
 O relatório é composto por uma única página com os seguintes visuais:
 
 | Visual | Descrição |
-|---|---|
+|--------|-----------|
 | **KPI — Média de Unidades Produzidas** | Média geral do período completo |
 | **KPI — Pico de Unidades Produzidas** | Valor máximo registrado, configurado como agregação de máximo (2020) |
 | **Total de Unidades Produzidas por Faixa de Idade** | Barras horizontais ordenadas por volume total por faixa etária |
@@ -42,7 +42,55 @@ O relatório é composto por uma única página com os seguintes visuais:
 - **Ferramenta:** Power BI Desktop
 - **Transformação de dados (Power Query):** ajuste de tipos de dado, promoção de cabeçalhos e configuração da fonte
 - **Visualizações:** gráfico de linha com previsão nativa (forecast automático do Power BI), gráfico de área empilhada por segmento, barras horizontais e cartões KPI com agregação de máximo
-- **Sem medidas DAX** — todas as agregações utilizam as funções nativas do Power BI, incluindo a configuração de máximo no cartão de pico
+
+**Medidas DAX criadas:**
+
+Duas medidas foram desenvolvidas para apoiar a análise temporal e o cálculo do pico de produção:
+
+```dax
+Média móvel de Soma de Total Unidades Produzidas = 
+IF(
+    ISFILTERED('Producao'[Período]),
+    ERROR("Medidas rápidas de inteligência de tempo somente podem ser agrupadas ou filtradas pela hierarquia de data fornecida pelo Power BI ou pela coluna de data primária."),
+    VAR __LAST_DATE = ENDOFMONTH('Producao'[Período].[Date])
+    VAR __DATE_PERIOD =
+        DATESBETWEEN(
+            'Producao'[Período].[Date],
+            STARTOFMONTH(DATEADD(__LAST_DATE, -2, MONTH)),
+            ENDOFMONTH(DATEADD(__LAST_DATE, 2, MONTH))
+        )
+    RETURN
+        AVERAGEX(
+            CALCULATETABLE(
+                SUMMARIZE(
+                    VALUES('Producao'),
+                    'Producao'[Período].[Ano],
+                    'Producao'[Período].[QuarterNo],
+                    'Producao'[Período].[Trimestre],
+                    'Producao'[Período].[MonthNo],
+                    'Producao'[Período].[Mês]
+                ),
+                __DATE_PERIOD
+            ),
+            CALCULATE(
+                SUM('Producao'[Total Unidades Produzidas]),
+                ALL('Producao'[Período].[Dia])
+            )
+        )
+)
+```
+
+Calcula a média móvel da produção total considerando uma janela de 5 meses (2 anteriores + mês atual + 2 posteriores), suavizando variações pontuais e evidenciando a tendência real da série temporal.
+
+```dax
+Pico de Producao = 
+MAXX(
+    SUMMARIZE('Producao', 'Producao'[Período].[Ano]),
+    [T]
+)
+```
+
+Retorna o maior valor anual de produção registrado no período, utilizado no cartão KPI de pico — garantindo que a agregação respeite a granularidade por ano.
 
 ---
 
